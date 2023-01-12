@@ -1,0 +1,26 @@
+version: "2"
+
+services:
+  db:
+    #image: 42crunch/pixi:datastore
+    image: 42crunch/pixi:mongo
+    command: --quiet
+    container_name: pixidb
+    ports:
+      - "27017:27017"
+      - "28017:28017"
+
+  app:
+    build: ./app
+    ports:
+      - "8090:8090"
+    expose:
+      - 8090
+
+  #api:
+  #  image: 42crunch/pixi:v3
+  #  container_name: pixiapi
+  #  ports:
+  #    - "8090:8090"
+  #  expose:
+  #    - 8090
