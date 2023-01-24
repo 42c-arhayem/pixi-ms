@@ -102,20 +102,13 @@ function api_authenticate(user, pass, req, res) {
 
 function api_register(user, pass, req, res) {
 	console.log('>>> Registering user: ' + user + ' with password: ' + pass);
-	// Check if user already exist
+
 	const users = db.collection('users');
-	//const counters = db.collection('counters');
-
-	// Automated increment. Not working. Replacing with uuid generation.
-	// counters.findOneAndUpdate(
-	// 	{ "_id": "userid" },
-	// 	{ $inc: { "seq": 1 } },
-	// 	{ returnNewDocument: true, upsert: true }
-
 	// Check if user exists first
 	users.findOne({ email: user }, function (err, result) {
 		if (err) { return err; }
 		if (result !== null) {
+			// Bad message: the error message should not indicate what the error is.
 			res.status(400).json({ "message": "user is already registered" });
 		}
 		else {
@@ -157,7 +150,7 @@ function api_register(user, pass, req, res) {
 						expiresIn: "30m",
 						audience: 'pixiUsers'
 					});
-					res.status(200).json({ message: "x-access-token", token: token });
+					res.status(200).json({ message: "x-access-token", token: token, _id: payload._id });
 				} //if user
 
 			}) //insert
@@ -308,7 +301,6 @@ api.post('/api/user/register', function (req, res) {
 	} else if (req.body.pass.length <= 4) {
 		res.status(422).json({ "message": "password length too short, minimum of 5 characters" })
 	} else {
-		console.log('in else');
 		api_register(req.body.user, req.body.pass, req, res);
 	}
 })
