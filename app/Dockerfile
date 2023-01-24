@@ -1,5 +1,5 @@
 
-FROM node:12-alpine
+FROM node:18-alpine
 #RUN apk add --no-cache make gcc g++ python
 RUN rm -rf /usr/src/pixi/web/uploads
 RUN mkdir -p /usr/src/pixi/web
