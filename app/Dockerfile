@@ -7,7 +7,7 @@ WORKDIR /usr/src/pixi/web
 COPY . /usr/src/pixi/web
 
 RUN npm ci
-ENV MONGO_URL=mongodb://pixidb:27017/Pixidb
+ENV MONGO_URL=mongodb://pixidb:27017
 EXPOSE 8090
 
 CMD ["node", "/usr/src/pixi/web/api-server.js"]
