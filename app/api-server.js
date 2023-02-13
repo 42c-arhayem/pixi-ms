@@ -14,10 +14,6 @@ var fs = require('fs');
 const MongoClient = require('mongodb').MongoClient;
 const dotenv = require('dotenv');
 
-//file uploading helpers
-var multer = require('multer');
-var upload = multer({ dest: 'uploads/' });
-
 //auth/token stuff
 var jwt = require('jsonwebtoken');
 
@@ -220,11 +216,11 @@ api.delete('/api/picture/:id', api_token_check, function (req, res) {
 				res.status(500).json({ "message": "system error" });
 			}
 			if (result.deletedCount == 0) {
-				console.log (">>> No picture was deleted")
+				console.log(">>> No picture was deleted")
 				res.status(400).json({ "message": "bad input" });
 			}
 			else {
-				console.log ('>>> Photo ' + req.params.id + ' was deleted');
+				console.log('>>> Photo ' + req.params.id + ' was deleted');
 				res.status(200).json({ "message": "success" });
 			}
 		})
@@ -246,7 +242,7 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 				}
 				//console.log("result object:" + result.deletedCount);
 				if (result.deletedCount == 0) {
-					console.log (">>> No user was deleted")
+					console.log(">>> No user was deleted")
 					res.status(400).json({ "message": "bad input" });
 				}
 				else {
@@ -257,27 +253,31 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 	}
 });
 
-api.post('/api/picture/upload', api_token_check, upload.single('filename'), function (req, res, next) {
-
-	//const counters = db.collection("counters");
+api.post('/api/picture/upload', api_token_check, function (req, res, next) {
 	const pictures = db.collection("pictures")
 
-	if (!req.file) {
+	if (!req.body.contents) {
 		res.status(400).json({ "message": "missing file" });
 	}
 	else {
-		console.log(">>> Uploading File: " + req.file);
-		console.log(">>> File name: " + req.file.originalname)
+		console.log(">>> Uploading File: " + req.body.contents);
+		const imageUUID = uuidv4();
+		const imageName = imageUUID + ".img";
+		const imageUrl = __dirname + '/uploads/' + imageName;
+		console.log(">>> Uploading File: " + imageUrl);
+		const imageBuffer = Buffer.from(req.body.contents, 'base64');
+		fs.writeFileSync(imageUrl, imageBuffer);
+
 		var description = random_sentence();
 		var name = randomWords({ exactly: 2 });
 		name = name.join(' ');
 
 		var payload = {
-			_id: uuidv4(),
-			title: req.file.originalname,
-			image_url: req.file.path,
+			_id: imageUUID,
+			title: req.body.title,
+			image_url: imageUrl,
 			name: name,
-			filename: req.file.filename,
+			filename: imageName,
 			description: description,
 			creator_id: req.user.user_profile._id,
 			money_made: 0,
@@ -290,9 +290,9 @@ api.post('/api/picture/upload', api_token_check, upload.single('filename'), func
 				console.log('>>> Query error...' + err);
 				res.status(500).json({ "message": "system error" });
 			}
-			//console.log ("Inserted ID: " + result.insertedId)
+			console.log("Inserted ID: " + result.insertedId)
 			if (result.insertedId !== null) {
-				res.status(200).json({"message": "success", "_id": result.insertedId});
+				res.status(200).json({ "message": "success", "_id": result.insertedId });
 			}
 		}); // photo insert
 	} //else
@@ -375,9 +375,9 @@ api.put('/api/user/edit_info', api_token_check, function (req, res) {
 });
 
 api.get('/api/user/pictures', api_token_check, function (req, res) {
-	
+
 	const pictures = db.collection('pictures');
-	
+
 	pictures.find({ creator_id: req.user.user_profile._id }).toArray(function (err, pictures) {
 		if (err) {
 			console.log('>>> Query error...' + err);
