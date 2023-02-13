@@ -260,7 +260,7 @@ api.post('/api/picture/upload', api_token_check, function (req, res, next) {
 		res.status(400).json({ "message": "missing file" });
 	}
 	else {
-		console.log(">>> Uploading File: " + req.body.contents);
+		//console.log(">>> Uploading File: " + req.body.contents);
 		const imageUUID = uuidv4();
 		const imageName = imageUUID + ".img";
 		const imageUrl = __dirname + '/uploads/' + imageName;
@@ -394,7 +394,7 @@ api.get('/api/user/pictures', api_token_check, function (req, res) {
 
 api.get('/api/admin/all_users', api_token_check, function (req, res) {
 	//res.json(req.user);
-	//Authorization issue: can be called by non-admins.
+	//API2 - Authorization issue: can be called by non-admins.
 	db.collection('users').find().toArray(function (err, all_users) {
 		if (err) { return err }
 		if (all_users) {
