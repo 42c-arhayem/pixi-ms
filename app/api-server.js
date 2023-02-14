@@ -253,7 +253,7 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 	}
 });
 
-api.post('/api/picture/upload', api_token_check, function (req, res, next) {
+api.post('/api/picture/upload', api_token_check, function (req, res) {
 	const pictures = db.collection("pictures")
 
 	if (!req.body.contents) {
@@ -265,8 +265,15 @@ api.post('/api/picture/upload', api_token_check, function (req, res, next) {
 		const imageName = imageUUID + ".img";
 		const imageUrl = __dirname + '/uploads/' + imageName;
 		console.log(">>> Uploading File: " + imageUrl);
-		const imageBuffer = Buffer.from(req.body.contents, 'base64');
-		fs.writeFileSync(imageUrl, imageBuffer);
+		try {
+			const imageBuffer = Buffer.from(req.body.contents, 'base64');
+			fs.writeFileSync(imageUrl, imageBuffer);
+		}
+		catch (exc) {
+			console.log ("Exception raised while saving file: " + e );
+			res.status(400).json({ "message": "bad data input" });
+			return;
+		}
 
 		var description = random_sentence();
 		var name = randomWords({ exactly: 2 });
