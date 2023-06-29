@@ -1,11 +1,11 @@
 {
-  "name": "Pixi",
+  "name": "pixi",
   "version": "1.0.0",
   "description": "Vulnerable modern web application",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node api-server.js"
   },
   "author": "nicole becher",
   "license": "ISC",

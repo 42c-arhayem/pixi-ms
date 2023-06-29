@@ -1,14 +1,13 @@
 'use strict';
 
-var express = require('express');
-var serveStatic = require('serve-static');
-var bodyParser = require('body-parser')
-var cookieParser = require('cookie-parser');
+const express = require('express');
+const serveStatic = require('serve-static');
+const bodyParser = require('body-parser')
 
-var unless = require('express-unless');
-var randomWords = require('random-words');
-var Sentencer = require('sentencer');
-var fs = require('fs');
+const randomWords = require('random-words');
+const Sentencer = require('sentencer');
+const https = require('https');
+const fs = require('fs');
 
 //database
 const MongoClient = require('mongodb').MongoClient;
@@ -31,8 +30,6 @@ api.use(bodyParser.json());
 api.use(bodyParser.urlencoded({
 	extended: true
 }));
-
-//api.use(cookieParser());
 
 //accept files in /uploads dir (pictures)
 api.use(serveStatic(__dirname + '/uploads'));
@@ -217,7 +214,7 @@ api.delete('/api/picture/:id', api_token_check, function (req, res) {
 			}
 			if (result.deletedCount == 0) {
 				console.log(">>> No picture was deleted")
-				res.status(400).json({ "message": "bad input" });
+				res.status(404).json({ "message": "not found" });
 			}
 			else {
 				console.log('>>> Photo ' + req.params.id + ' was deleted');
@@ -252,6 +249,75 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 
 	}
 });
+
+api.post('/api/picture/file_upload', api_token_check, function (req, res) {
+	const pictures = db.collection("pictures")
+
+	if (!req.body.filename) {
+		res.status(400).json({ "message": "missing filename" });
+	}
+	else {
+		//console.log(">>> Uploading File: " + req.body.contents);
+		const imageUUID = uuidv4();
+		const imageName = imageUUID + ".img";
+		const imageUrl = __dirname + '/uploads/' + imageName;
+		
+		try {
+			https.get(req.body.filename, (response) => {
+			// Create a write stream to save the file locally
+			const fileStream = fs.createWriteStream(imageUrl);
+		  
+			// When data is received, write it to the file stream
+			response.on('data', (chunk) => {
+			  fileStream.write(chunk);
+			});
+		  
+			// When the response ends, close the file stream
+			response.on('end', () => {
+			  fileStream.end();
+			  console.log('File downloaded and saved successfully.');
+			});
+		  }).on('error', (err) => {
+			console.error('Error downloading the file:', err.message);
+		  });
+		  
+		}
+		catch (e) {
+			console.log ("Exception raised while/saving retrieving file: " + e.message );
+			res.status(400).json({ "message": "bad data input" });
+		}
+		
+		var description = random_sentence();
+		var name = randomWords({ exactly: 2 });
+		name = name.join(' ');
+
+		var payload = {
+			_id: imageUUID,
+			title: req.body.title,
+			image_url: imageUrl,
+			name: name,
+			filename: imageName,
+			description: description,
+			creator_id: req.user.user_profile._id,
+			money_made: 0,
+			likes: 0,
+			created_date: new Date()
+		}
+
+		pictures.insertOne(payload, { forceServerObjectId: true }, function (err, result) {
+			if (err) {
+				console.log('>>> Query error...' + err);
+				res.status(500).json({ "message": "system error" });
+			}
+			console.log("Inserted ID: " + result.insertedId)
+			if (result.insertedId !== null) {
+				res.status(200).json({ "message": "success", "_id": result.insertedId });
+			}
+		}); // photo insert
+	} //else
+});
+
+
 
 api.post('/api/picture/upload', api_token_check, function (req, res) {
 	const pictures = db.collection("pictures")
