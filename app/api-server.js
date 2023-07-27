@@ -18,6 +18,8 @@ var jwt = require('jsonwebtoken');
 
 // Crypto to generate UUIDs
 const { v4: uuidv4 } = require('uuid');
+const { create } = require('domain');
+const { type } = require('os');
 
 // PRIVATE and PUBLIC key
 var privateKey = fs.readFileSync('./keys/private.key', 'utf8');
@@ -73,15 +75,7 @@ function api_authenticate(user, pass, req, res) {
 			var user_profile = result;
 			// API7/API3: Add full record to JWT token (including clear password)
 			var payload = { user_profile };
-
-			var token = jwt.sign(payload, privateKey, {
-				algorithm: 'RS384',
-				issuer: 'https://issuer.42crunch.demo',
-				subject: user_profile.email,
-				expiresIn: "30m",
-				audience: 'pixiUsers'
-			});
-
+			var token = create_jwt ('RS384', 'pixiUsers', 'https://issuer.42crunch.demo', user_profile.email, payload, privateKey);
 			res.status(200).json({ message: "success", token: token, _id: user_profile._id });
 		}
 		else
@@ -136,15 +130,8 @@ function api_register(user, pass, req, res) {
 				if (user.insertedId != null) {
 					var user_profile = payload;
 					var jwt_payload = { user_profile };
-					var token = "";
 					try {
-						token = jwt.sign(jwt_payload, privateKey, {
-							algorithm: 'RS384',
-							issuer: 'https://issuer.42crunch.demo',
-							subject: subject,
-							expiresIn: "30m",
-							audience: 'pixiUsers'
-						})
+						var token = create_jwt ('RS384', 'pixiUsers', 'https://issuer.42crunch.demo', subject, jwt_payload, privateKey);
 						res.status(200).json({ message: "success", token: token, _id: payload._id });
 					}
 					catch {
@@ -155,6 +142,24 @@ function api_register(user, pass, req, res) {
 			}) //insert
 		} // else
 	});
+}
+
+function create_jwt (algorithm, audience, issuer, subject, jwt_payload, key) {
+	var token = "";
+	try {
+		token = jwt.sign(jwt_payload, key, {
+			algorithm: algorithm,
+			issuer: issuer,
+			subject: subject,
+			expiresIn: "30m",
+			audience: audience
+		})
+		return token	
+	}
+	catch (e) {
+		// Re-throw original issue.
+		throw e
+	}
 }
 
 function api_token_check(req, res, next) {
@@ -317,8 +322,6 @@ api.post('/api/picture/file_upload', api_token_check, function (req, res) {
 	} //else
 });
 
-
-
 api.post('/api/picture/upload', api_token_check, function (req, res) {
 	const pictures = db.collection("pictures")
 
@@ -370,6 +373,46 @@ api.post('/api/picture/upload', api_token_check, function (req, res) {
 		}); // photo insert
 	} //else
 });
+
+api.get('/api/admin/user/tokens', function (req, res) {
+	if ((!req.body.type)) {
+		res.status(422).json({ "message": "missing token type" });
+	}
+	else {
+		const payload = {
+			"_id": "41dda03a-518f-4fd5-9d5f-c78da496c3e2",
+			"email": "user-inbound@acme.com",
+			"password": "hellopixi",
+			"name": "Santiago Wilderman",
+			"account_balance": 1000,
+			"is_admin": false,
+			"onboarding_date": "2023-07-10T20:19:52.165Z"
+		}
+		var user_profile = payload;
+		var jwt_payload = { user_profile };
+		var token_type = req.body.type ;
+		var token = "";
+		switch (token_type) {
+			case 'bad_algo':
+				console.log('Selected: Generating JWT with Bad Algo');
+				var symmetricKey = "owasptopsecretowasptopsecret";
+				token = create_jwt ('HS256', 'pixiUsers', 'https://issuer.42crunch.demo', payload.email, jwt_payload, symmetricKey);
+				res.status(200).json({ message: "success", token: token});;
+			case 'bad_issuer':
+				console.log('Selected: Generating JWT with Bad Issuer');
+				token = create_jwt ('RS384', 'pixiUsers', 'https://wrongissuer.test', payload.email, jwt_payload, privateKey);
+				res.status(200).json({ message: "success", token: token});
+			case 'bad_audience':
+				console.log('Selected: Generating JWT with Bad Audience');		
+				token = create_jwt ('RS384', 'badActors', 'https://issuer.42crunch.demo', payload.email, jwt_payload, privateKey);
+				res.status(200).json({ message: "success", token: token});
+			default:
+			  console.log('Unknown value');
+		  }
+		var token = create_jwt ()
+		api_authenticate(req.body.user, req.body.pass, req, res);
+	}
+})
 
 // user related.
 api.post('/api/user/login', function (req, res) {
