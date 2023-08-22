@@ -1,4 +1,4 @@
-FROM mongo:4.4.18
+FROM --platform=linux/amd64 amd64/mongo:4.4.23
 
 ADD  ./Pixi44Dump.tar /tmp
 COPY pixi_restore.sh /docker-entrypoint-initdb.d
