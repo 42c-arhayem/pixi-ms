@@ -520,5 +520,11 @@ api.get('/api/admin/all_users', api_token_check, function (req, res) {
 });
 
 api.get('/api/healthz', function (req, res) {
-	res.status(200).json({ "message": "Alive and Well" });
+	const specialHeader = req.headers['health-agent'];
+	if ( specialHeader.startsWith ('k8s-platform') ) {
+		res.status(200).json({ "message": "Alive and Well" });
+	} else {
+		res.status(400).json({ "message": "Not Welcome Here" });
+	}
+	
 });
