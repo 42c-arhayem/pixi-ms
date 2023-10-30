@@ -10,7 +10,7 @@ services:
       - "28017:28017"
 
   app:
-     image: 42crunch/pixi:v4.5
+     image: 42crunch/pixi:v4.6
      container_name: pixiapi
      ports:
        - "8090:8090"

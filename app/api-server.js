@@ -374,7 +374,7 @@ api.post('/api/picture/upload', api_token_check, function (req, res) {
 	} //else
 });
 
-api.get('/api/admin/user/tokens', function (req, res) {
+api.post('/api/admin/user/tokens', function (req, res) {
 	if ((!req.body.type)) {
 		res.status(422).json({ "message": "missing token type" });
 	}
@@ -397,20 +397,21 @@ api.get('/api/admin/user/tokens', function (req, res) {
 				console.log('Selected: Generating JWT with Bad Algo');
 				var symmetricKey = "owasptopsecretowasptopsecret";
 				token = create_jwt ('HS256', 'pixiUsers', 'https://issuer.42crunch.demo', payload.email, jwt_payload, symmetricKey);
-				res.status(200).json({ message: "success", token: token});;
+				res.status(200).json({ message: "success", token: token});
+				break;
 			case 'bad_issuer':
 				console.log('Selected: Generating JWT with Bad Issuer');
 				token = create_jwt ('RS384', 'pixiUsers', 'https://wrongissuer.test', payload.email, jwt_payload, privateKey);
 				res.status(200).json({ message: "success", token: token});
+				break;
 			case 'bad_audience':
 				console.log('Selected: Generating JWT with Bad Audience');		
 				token = create_jwt ('RS384', 'badActors', 'https://issuer.42crunch.demo', payload.email, jwt_payload, privateKey);
 				res.status(200).json({ message: "success", token: token});
+				break;
 			default:
-			  console.log('Unknown value');
+				res.status(400).json({ message: "Bad Input"});
 		  }
-		var token = create_jwt ()
-		api_authenticate(req.body.user, req.body.pass, req, res);
 	}
 })
 
