@@ -20,6 +20,7 @@ var jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { create } = require('domain');
 const { type } = require('os');
+const { exit } = require('process');
 
 // PRIVATE and PUBLIC key
 var privateKey = fs.readFileSync('./keys/private.key', 'utf8');
@@ -260,7 +261,12 @@ api.post('/api/picture/file_upload', api_token_check, function (req, res) {
 
 	if (!req.body.filename) {
 		res.status(400).json({ "message": "missing filename" });
+		return;
 	}
+
+	if (!req.body.filename.startsWith ("https")) {
+		res.status(400).json({ "message": "incorrect URL" });
+	} 
 	else {
 		//console.log(">>> Uploading File: " + req.body.contents);
 		const imageUUID = uuidv4();
@@ -290,6 +296,7 @@ api.post('/api/picture/file_upload', api_token_check, function (req, res) {
 		catch (e) {
 			console.log ("Exception raised while/saving retrieving file: " + e.message );
 			res.status(400).json({ "message": "bad data input" });
+			return;
 		}
 		
 		var description = random_sentence();
