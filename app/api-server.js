@@ -475,9 +475,7 @@ api.get('/api/user/info/:id', api_token_check, function (req, res) {
 			}
 			else {
 				console.log('>>> User info for ' + req.params.id + ' was returned');
-				// API3 - Sensitive data exposure: the user's password is returned in the response.
-				// Filter the properties in response
-				res.status(200).json({"_id": result._id, "email": result.email, "name": result.name, "account_balance": result.account_balance, "is_admin": result.is_admin});
+				res.status(200).json(result);
 		}
 	})
 });
