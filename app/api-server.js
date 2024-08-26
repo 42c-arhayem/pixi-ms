@@ -212,13 +212,6 @@ api.delete('/api/picture/:id', api_token_check, function (req, res) {
 	const pictures = db.collection('pictures');
 	// BOLA - API1 Issue here: a user can delete someone's else picture.
 	// Code does not validate who the picture belongs too.
-	pictures.findOne({ _id: req.params.id },
-		function (err, picture) {
-			if (err) {
-				console.log('>>> Query error...' + err);
-				res.status(500).json({ "message": "system error" });
-			}
-			if (picture && (picture.creator_id == req.user.user_profile._id || req.user.user_profile.is_admin)) { 
 	pictures.deleteOne({ _id: req.params.id },
 		function (err, result) {
 			if (err) {
@@ -232,11 +225,6 @@ api.delete('/api/picture/:id', api_token_check, function (req, res) {
 			else {
 				console.log('>>> Photo ' + req.params.id + ' was deleted');
 				res.status(200).json({ "message": "success" });
-						}
-					})
-			} else {
-				console.log(">>> User does not own the picture")
-				res.status(403).json({ "success": false, "message": "forbidden" });
 			}
 		})
 });
@@ -248,10 +236,7 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 		res.status(400).json({ "message": "missing userid to delete" });
 	}
 	else {
-		// API2 : BFLA - Authorization issue - This call should enforce admin role, but it does not.
-		if (!req.user.user_profile.is_admin) {
-			res.status(403).json({ "success": false, "message": "forbidden" });
-		} else {
+		// API2 : Authorization issue - This call should enforce admin role, but it does not.
 		users.deleteOne({ _id: req.params.id },
 			function (err, result) {
 				if (err) {
@@ -267,7 +252,6 @@ api.delete('/api/admin/user/:id', api_token_check, function (req, res) {
 					res.status(200).json({ "message": "success" });
 				}
 			});
-		}
 
 	}
 });
@@ -468,15 +452,7 @@ api.get('/api/user/info', api_token_check, function (req, res) {
 		db.collection('users').find({ _id: req.user.user_profile._id }).toArray(function (err, user) {
 			if (err) { return err }
 			if (user) {
-				// Filter the properties in response
-                const filteredUsers = user.map(thisUser => ({
-                    _id: thisUser._id,
-                    email: thisUser.email,
-					name: thisUser.name,
-					account_balance: thisUser.account_balance,
-					is_admin: thisUser.is_admin
-                }));
-                res.json(filteredUsers);
+				res.status(200).json(user);
 			}
 		})
 	}
@@ -487,27 +463,23 @@ api.get('/api/user/info/:id', api_token_check, function (req, res) {
 	const users = db.collection('users');
 	// BOLA - API1 Issue here: a user can get someone's information.
 	// Code does not validate who the user making the request is.
-	if (req.params.id != req.user.user_profile._id) {
-		res.status(403).json({ "success": false, "message": "forbidden" });
-	} else {
-		users.findOne({ _id: req.params.id },
-			function (err, result) {
-				if (err) {
-					console.log('>>> Query error...' + err);
-					res.status(500).json({ "message": "system error" });
-				}
-				if (!result) {
-					console.log(">>> No user was found")
-					res.status(404).json({ "message": "not found" });
-				}
-				else {
-					console.log('>>> User info for ' + req.params.id + ' was returned');
-					// API3 - Sensitive data exposure: the user's password is returned in the response.
-					// Filter the properties in response
-					res.status(200).json({"_id": result._id, "email": result.email, "name": result.name, "account_balance": result.account_balance, "is_admin": result.is_admin});
+	users.findOne({ _id: req.params.id },
+		function (err, result) {
+			if (err) {
+				console.log('>>> Query error...' + err);
+				res.status(500).json({ "message": "system error" });
 			}
-		})
-	}
+			if (!result) {
+				console.log(">>> No user was found")
+				res.status(404).json({ "message": "not found" });
+			}
+			else {
+				console.log('>>> User info for ' + req.params.id + ' was returned');
+				// API3 - Sensitive data exposure: the user's password is returned in the response.
+				// Filter the properties in response
+				res.status(200).json({"_id": result._id, "email": result.email, "name": result.name, "account_balance": result.account_balance, "is_admin": result.is_admin});
+		}
+	})
 });
 
 api.put('/api/user/edit_info', api_token_check, function (req, res) {
@@ -575,45 +547,29 @@ api.get('/api/user/pictures/:id', api_token_check, function (req, res) {
 	const pictures = db.collection('pictures');
 	// BOLA - API1 Issue here: a user can get someone else's pictures.
 	// Code does not validate who the requester is before returning the pictures.
-	if (req.params.id != req.user.user_profile._id) {
-		res.status(403).json({ "success": false, "message": "forbidden" });
-	} else {
-		pictures.find({ creator_id: req.params.id }).toArray(function (err, pictures) {
-			if (err) {
-				console.log('>>> Query error...' + err);
-				res.status(500).json({ "message": "system error" });
-			}
+	pictures.find({ creator_id: req.params.id }).toArray(function (err, pictures) {
+		if (err) {
+			console.log('>>> Query error...' + err);
+			res.status(500).json({ "message": "system error" });
+		}
 
-			if (pictures) {
-				console.log(">>> Pictures list: " + pictures);
-				res.json(pictures);
+		if (pictures) {
+			console.log(">>> Pictures list: " + pictures);
+			res.json(pictures);
 
-			}
-		})
-	}
+		}
+	})
 });
 
 api.get('/api/admin/all_users', api_token_check, function (req, res) {
 	//res.json(req.user);
-	//API2 - BFLA - Authorization issue: can be called by non-admins.
-	if (!req.user.user_profile.is_admin) {
-		res.status(403).json({ "success": false, "message": "forbidden" });
-	} else {
+	//API2 - Authorization issue: can be called by non-admins.
 	db.collection('users').find().toArray(function (err, all_users) {
 		if (err) { return err }
 		if (all_users) {
-				// API3 - Sensitive data exposure: the users' passwords are returned in the response.
-				// Filter the properties in response
-                const filteredUsers = all_users.map(user => ({
-                    _id: user._id,
-                    email: user.email,
-					name: user.name,
-					account_balance: user.account_balance
-                }));
-                res.json(filteredUsers);
+			res.json(all_users);
 		}
 	})
-	}
 });
 
 api.get('/api/healthz', function (req, res) {
