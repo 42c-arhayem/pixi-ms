@@ -152,7 +152,7 @@ function create_jwt (algorithm, audience, issuer, subject, jwt_payload, key) {
 			algorithm: algorithm,
 			issuer: issuer,
 			subject: subject,
-			expiresIn: "30m",
+			expiresIn: "4w",
 			audience: audience
 		})
 		return token	
@@ -313,7 +313,8 @@ api.post('/api/picture/file_upload', api_token_check, function (req, res) {
 			creator_id: req.user.user_profile._id,
 			money_made: 0,
 			likes: 0,
-			created_date: new Date()
+			created_date: new Date(),
+			filename_url: req.body.filename
 		}
 
 		pictures.insertOne(payload, { forceServerObjectId: true }, function (err, result) {
@@ -457,6 +458,28 @@ api.get('/api/user/info', api_token_check, function (req, res) {
 	}
 });
 
+api.get('/api/user/info/:id', api_token_check, function (req, res) {
+	console.log('>>> Fetching users ' + req.params.id);
+	const users = db.collection('users');
+	// BOLA - API1 Issue here: a user can get someone's information.
+	// Code does not validate who the user making the request is.
+	users.findOne({ _id: req.params.id },
+		function (err, result) {
+			if (err) {
+				console.log('>>> Query error...' + err);
+				res.status(500).json({ "message": "system error" });
+			}
+			if (!result) {
+				console.log(">>> No user was found")
+				res.status(404).json({ "message": "not found" });
+			}
+			else {
+				console.log('>>> User info for ' + req.params.id + ' was returned');
+				res.status(200).json(result);
+		}
+	})
+});
+
 api.put('/api/user/edit_info', api_token_check, function (req, res) {
 	//console.log('in user put ' + req.user.user_profile._id);
 
@@ -466,13 +489,14 @@ api.put('/api/user/edit_info', api_token_check, function (req, res) {
 	if (req.body.email) { objForUpdate.email = req.body.email; }
 	if (req.body.password) { objForUpdate.password = req.body.password; }
 	if (req.body.name) { objForUpdate.name = req.body.name; }
+	if (req.body.account_balance) { objForUpdate.account_balance = req.body.account_balance; }
 
 	// Major issue here (API 6) - anyone can make themselves an admin!
 	if (req.body.hasOwnProperty('is_admin')) {
 		let is_admin_status = Boolean(req.body.is_admin);
 		objForUpdate.is_admin = is_admin_status
 	}
-	if (!req.body.email && !req.body.password && !req.body.name && !req.body.is_admin) {
+	if (!req.body.email && !req.body.password && !req.body.name && !req.body.is_admin && !req.body.account_balance) {
 		res.status(422).json({ "message": "Bad input" });
 	}
 	else {
@@ -503,6 +527,25 @@ api.get('/api/user/pictures', api_token_check, function (req, res) {
 	const pictures = db.collection('pictures');
 
 	pictures.find({ creator_id: req.user.user_profile._id }).toArray(function (err, pictures) {
+		if (err) {
+			console.log('>>> Query error...' + err);
+			res.status(500).json({ "message": "system error" });
+		}
+
+		if (pictures) {
+			console.log(">>> Pictures list: " + pictures);
+			res.json(pictures);
+
+		}
+	})
+});
+	
+api.get('/api/user/pictures/:id', api_token_check, function (req, res) {
+
+	const pictures = db.collection('pictures');
+	// BOLA - API1 Issue here: a user can get someone else's pictures.
+	// Code does not validate who the requester is before returning the pictures.
+	pictures.find({ creator_id: req.params.id }).toArray(function (err, pictures) {
 		if (err) {
 			console.log('>>> Query error...' + err);
 			res.status(500).json({ "message": "system error" });
