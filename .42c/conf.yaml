@@ -1,0 +1,3 @@
+apis:
+  OASFiles/pixi.json:
+    alias: pixi-app-api
